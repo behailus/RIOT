@@ -30,6 +30,7 @@
 #include "shell.h"
 #include "shell_commands.h"
 #include "board_uart0.h"
+#include "h_bsdapi.h"
 
 #ifdef MODULE_LTC4150
 #include "ltc4150.h"
@@ -130,6 +131,72 @@ void init_transceiver(void)
     transceiver_register(transceivers, radio_pid);
 }
 #endif /* MODULE_TRANSCEIVER */
+
+
+ /* This is the begining of nlite related implementation
+  *
+  */
+static nota_addr_t addr = CAESAR_SN_ADDRESS;
+
+#define CAESAR_SN_ADDRESS   {2,0}
+
+#define	CAESAR_CRYPT_REQ_SIGID        0x0001
+#define	CAESAR_CRYPT_CNF_SIGID        0x0002
+#define	CAESAR_CRYPT_ERROR_CNF_SIGID  0x0003
+#define CAESAR_SOCK_TYPE SOCK_SEQPACKET
+
+#define CAESAR_MAX_MSG_SIZE 512
+
+int caesar_get_message (h_in_t *inst, int peersock, uint8_t **buf, int *len)
+{
+	do {
+		int msglen;
+		uint16_t sigid;
+		uint16_t temp;
+                int i;
+		if (!inst||peersock<0||!buf||!len||!*len) {
+			errno = EINVAL;
+			break;
+		}
+
+		msglen = Hrecv (inst, peersock, *buf, 1,
+				MSG_PEEK|MSG_TRUNC|MSG_WAITALL);
+		if (msglen<0||msglen>*len)
+			break;
+
+		/* read the whole msg and it won't block */
+		*len = Hrecv (inst, peersock, *buf, msglen, 0);
+		if (*len<msglen) /* did we get everything? */
+ 			break;
+
+		if ((*buf)[0] == 0xa1) {   /* SIGID1 */
+			sigid   = (*buf)[1];
+			*buf   += 2; /* jump past sigid */
+			*len   -= 2;
+
+		} else if ((*buf)[0] == 0xa2) { /* SIGID2 */
+			sigid   = (*buf)[1] + (*buf)[2]; /*little-endian*/
+			*buf   += 3; /* jump past sigid */
+			*len   -= 3;
+
+		} else  {
+			errno = EINVAL; /* invalid message */
+			break;
+		}
+		return sigid;
+
+	} while (0); /* do only once */
+
+	/* something went wrong */
+	fprintf (stderr, "! some error occured: %s\n", errno ? strerror(errno) : "");
+	return -1;
+}
+
+
+
+/*
+    End of nlite migrated code
+*/
 
 static int shell_readc(void)
 {
