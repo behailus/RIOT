@@ -192,7 +192,86 @@ int caesar_get_message (h_in_t *inst, int peersock, uint8_t **buf, int *len)
 	return -1;
 }
 
+static int send_caesar_crypt_req (h_in_t *inst, int sock, const char* str, char shift)
+{
+	int len, rv, buflen,i;
+	uint8_t buf[CAESAR_MAX_MSG_SIZE];
 
+	len = str ? strlen(str) : 0;
+	if (len > 255){
+		fprintf (stderr, "! string too long\n");
+		return -1;
+	}
+
+	/* set the sig-id; remember we it must be in little-endian order */
+	buf[0] = 0xa2; /*SIGID2*/
+	buf[1] = 0x00;
+	buf[2] = 0x01;
+
+	/* put the length, the string in the buffer */
+	buf[3] = 0x41; /* BDAT1 */
+	buf[4] = len; /* <= 255, we checked */
+	memcpy (&buf[5], str, len);
+
+	/* finally, put the shift in the buffer */
+	buf[5 + len]     = 0x21; /* INT8 */
+	buf[6 + len] = shift;
+	buflen = 7 + len; /* length of the whole thing*/
+	/* send the message to the SN (don't return until sent) */
+	rv = Hsend (inst, sock, buf, buflen, 0);
+	if (rv < 0) {
+		fprintf (stderr, "! failed to write to sock: %s\n",
+			 strerror(errno));
+		return -1;
+	}
+
+	fprintf (stdout, "> wrote %d bytes of %u\n", rv, buflen);
+	return 0;
+}
+
+void caesar_test(char *str)
+{
+    h_in_t *inst;
+	int sock, rv;
+	int gr=0;
+	int shft;
+	inst = Hgetinstance ();
+	if (!inst) {
+		printf ("! failed to get Hgetinstance: %s\n");
+	}
+
+	sock = Hsocket (inst, AF_NOTA, CAESAR_SOCK_TYPE, 0);
+	if (sock < 0) {
+		printf ("! failed to get Hsocket: %s\n");
+	}
+
+	rv = Hconnect (inst, sock, (struct sockaddr*)&addr, sizeof(addr));
+	if (rv != 0) {
+		printf (stderr, "! failed to Hconnect ({%u,%u}): %s\n",addr.sid, addr.port);
+		Hclose(inst, sock);
+	}
+
+	do {
+		/* call our sn */
+		shft=2;
+		if(shft < 0)
+			shft=25 + shft;
+		if (send_caesar_crypt_req (inst, sock, "Hello", shft) != 0)
+			break; /* some error occured */
+
+	} while (0); /* only once */
+
+	rv = Hclose (inst, sock);
+	if (rv != 0) {
+		printf (stderr, "! failed to Hclose: %s\n");
+	}
+	rv=Hclose (inst, sock);
+}
+
+const shell_command_t shell_commands[] ={
+    {"caesar","Test application for nlite",caesar_test},
+    {NULL,NULL,NULL}
+};
 
 /*
     End of nlite migrated code
@@ -210,6 +289,8 @@ static void shell_putchar(int c)
     (void) putchar(c);
 }
 
+
+
 int main(void)
 {
     shell_t shell;
@@ -225,7 +306,7 @@ int main(void)
 
     (void) puts("Welcome to RIOT!");
 
-    shell_init(&shell, NULL, UART0_BUFSIZE, shell_readc, shell_putchar);
+    shell_init(&shell, shell_commands, UART0_BUFSIZE, shell_readc, shell_putchar);
 
     shell_run(&shell);
     return 0;
