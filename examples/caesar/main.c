@@ -194,12 +194,12 @@ int caesar_get_message (h_in_t *inst, int peersock, uint8_t **buf, int *len)
 
 static int send_caesar_crypt_req (h_in_t *inst, int sock, const char* str, char shift)
 {
-	int len, rv, buflen,i;
+	int len, rv, buflen;
 	uint8_t buf[CAESAR_MAX_MSG_SIZE];
 
 	len = str ? strlen(str) : 0;
 	if (len > 255){
-		fprintf (stderr, "! string too long\n");
+		printf ("! string too long\n");
 		return -1;
 	}
 
@@ -220,34 +220,32 @@ static int send_caesar_crypt_req (h_in_t *inst, int sock, const char* str, char 
 	/* send the message to the SN (don't return until sent) */
 	rv = Hsend (inst, sock, buf, buflen, 0);
 	if (rv < 0) {
-		fprintf (stderr, "! failed to write to sock: %s\n",
-			 strerror(errno));
+		printf ("! failed to write to sock: \n");
 		return -1;
 	}
 
-	fprintf (stdout, "> wrote %d bytes of %u\n", rv, buflen);
+	printf ("> wrote %d bytes of %u\n", rv, buflen);
 	return 0;
 }
 
-void caesar_test(char *str)
+void caesar_test()
 {
     h_in_t *inst;
 	int sock, rv;
-	int gr=0;
 	int shft;
 	inst = Hgetinstance ();
 	if (!inst) {
-		printf ("! failed to get Hgetinstance: %s\n");
+		printf ("! failed to get Hgetinstance:\n");
 	}
 
 	sock = Hsocket (inst, AF_NOTA, CAESAR_SOCK_TYPE, 0);
 	if (sock < 0) {
-		printf ("! failed to get Hsocket: %s\n");
+		printf ("! failed to get Hsocket:\n");
 	}
 
 	rv = Hconnect (inst, sock, (struct sockaddr*)&addr, sizeof(addr));
 	if (rv != 0) {
-		printf (stderr, "! failed to Hconnect ({%u,%u}): %s\n",addr.sid, addr.port);
+		printf ("! failed to Hconnect ({%u,%u})\n",addr.sid, addr.port);
 		Hclose(inst, sock);
 	}
 
@@ -263,7 +261,7 @@ void caesar_test(char *str)
 
 	rv = Hclose (inst, sock);
 	if (rv != 0) {
-		printf (stderr, "! failed to Hclose: %s\n");
+		printf ("! failed to Hclose\n");
 	}
 	rv=Hclose (inst, sock);
 }

@@ -1,22 +1,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-#include "nota/h_bsdapi.h"
-#include "nota/l_if.h"
+#include "h_bsdapi.h"
+#include "l_if.h"
+#include "nhelper.h"
+#include "nprotocol.h"
+#include "ncontrol.h"
 
-#include "h_core.h"
-#include "socket_list.h"
-#include "request_handler.h"
-#include "subsystem_list.h"
-#include "socket.h"
-#include "manager.h"
-#include "constants.h"
-#include "shp.h"
-#include "srp.h"
-#include "sap.h"
-#include "sdp.h"
-#include "monitor_list.h"
-#include "utils.h"
 /* Data types */
 typedef enum h_core_state
   {
@@ -44,67 +34,10 @@ struct h_in
   int use_errno;
 };
 
-/* Local functions declaration*/
-static void free_core(h_in_t* core);
+h_in_t* Hcreate(h_rmif_policy_t rmif_policy, int use_errno);
+int Hdestroy(h_in_t* core);
 
-static void destroy_instance();
 
-static void l_ia_resolved_ind(void* userarg, ia_t my_ia, ia_t rm_ia);
-
-static void l_ia_lost_ind(void* userarg);
-
-static int l_socket_update(void* userarg, lsockid_t lsockid, int flags);
-
-static int do_connect(h_in_t* core, nota_addr_t* addr_info, h_socket_state_t* sockstate, h_socket_t* sock,
-                          int* ret_value, int sockid);
-
-static int connect_socket(h_in_t* core, nota_addr_t* addr_info, h_socket_state_t* sockstate,
-                          h_socket_t* sock, int sockid);
-
-static int connect_free_socket(h_in_t* core, nota_addr_t* addr_info, h_socket_t* sock, ia_t my_ia, ia_t manager_ia,
-                               h_socket_state_t* nextstate, int reqid);
-
-static int connect_connecting_socket(h_in_t* core,  nota_addr_t* addr_info, h_socket_t* sock,
-                                     h_socket_state_t* nextstate, ia_t my_ia, ia_t manager_ia,
-                                     int reqid, int type, int connection_id);
-
-static int lock_socket_get_state(nota_addr_t* addr_info, h_socket_state_t* sockstate, h_socket_t* sock,
-                                 int sockid);
-
-static int inc_sid_refcount(h_in_t* core, h_socket_t* sock, nota_addr_t* addr_info, int sockid, int type);
-
-static int get_manager_ia(h_in_t* core, ia_t* manager_ia);
-
-static int is_ready(h_in_t* core);
-
-static NOTA_INLINE int inc_usecount(h_in_t* core);
-
-static NOTA_INLINE int dec_usecount(h_in_t* core);
-
-/*Macros Definition
- *
- */
-
-#define CORE_ENTER(core) inc_usecount(core) > 0 ? 0 : -1
-
-/* this macro is used to exit core function and return an exit value */
-#define CORE_EXIT_RET(core, ret) do { \
-    dec_usecount(core);							\
-    if(core->use_errno == 1 && ret < 0)					\
-      { h_if_errno_set(ret); return -1; } else		\
-      { if(core->use_errno == 1) { h_if_errno_set(0); }			\
-         return ret; } } while(0)
-
-#define CORE_EXIT(core) dec_usecount(core)
-
-#define CORE_RET(core, ret) do {					\
-    if(core && core->use_errno == 1 && ret < 0)					\
-      { h_if_errno_set(ret); return -1; } else { return ret; } } while(0)
-
-/* Global variable
- *
- *
- */
 static h_in_t* h_instance = NULL;
 
 
@@ -746,65 +679,7 @@ EXPORT_C int Hgetsockopt(h_in_t* core, int sockid, int level, int optname,
 {
    int ret = -EINVAL, err;
 
-   if(!core)
-   {
-     CORE_RET(core, -EINVAL);
-   }
-
-   if(CORE_ENTER(core) != 0)
-   {
-      CORE_RET(core, -EFAULT);
-   }
-
-   if(level == SOL_SOCKET && optname == SO_PASSCRED && optval && optlen &&
-         *optlen > 0)
-   {
-      h_socket_t* sock = NULL;
-
-      /*
-       * socket is found from sockllist by sockid
-       * if any socket is not found the FAULT error code is returned
-       */
-      sock = h_socket_list_get_socket(core->socklist, sockid);
-      if(sock)
-      {
-         char* cert = NULL;
-         int cert_len;
-
-         /*
-          * the certificate of socket is got
-          * if any certificate is not found the FAULT error code is returned
-          */
-         err = h_socket_get_cert(sock, &cert, &cert_len);
-         if(err == 0)
-         {
-            /*
-             * if the length of certificate is bigger than the value of
-             * input attribute optlen the INVALID error code is returned
-             */
-            if(cert_len <= *optlen)
-            {
-               memcpy(optval, cert, *optlen);
-               *optlen = cert_len;
-               ret = 0;
-            }
-            else
-            {
-               ret = -EINVAL;
-            }
-         }
-         else
-         {
-            ret = -EFAULT;
-         }
-      }
-      else
-      {
-         ret = -EFAULT;
-      }
-   }
-
-   CORE_EXIT_RET(core, ret);
+   return ret;
 }
 
 
@@ -813,40 +688,7 @@ EXPORT_C int Hsetsockopt(h_in_t* core, int sockid, int level, int optname,
 {
    int ret = -EINVAL, err;
 
-   if(!core)
-   {
-     CORE_RET(core, -EINVAL);
-   }
-
-   if(CORE_ENTER(core) != 0)
-   {
-      CORE_RET(core, -EFAULT);
-   }
-
-   if(level == SOL_SOCKET && optname == SO_PASSCRED &&
-      (!(optval) || (optlen > 0)))
-   {
-      h_socket_t* sock = NULL;
-      sock = h_socket_list_get_socket(core->socklist, sockid);
-      if(sock)
-      {
-         err = h_socket_set_cert(sock, (char*)optval, (int)optlen);
-         if(err == 0)
-         {
-            ret = 0;
-         }
-         else
-         {
-            ret = -EFAULT;
-         }
-      }
-      else
-      {
-         ret = -EFAULT;
-      }
-   }
-
-   CORE_EXIT_RET(core, ret);
+   return ret;
 }
 
 

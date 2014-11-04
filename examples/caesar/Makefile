@@ -35,7 +35,7 @@ USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += vtimer
 USEMODULE += defaulttransceiver
-USEMODULE += nota
+USEMODULE += nlite
 
 ifneq (,$(filter msb-430,$(BOARD)))
 	USEMODULE += sht11
