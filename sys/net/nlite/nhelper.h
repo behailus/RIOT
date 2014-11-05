@@ -16,6 +16,10 @@
 #define SET32(p,v) SET16(p,v); SET16((p)+2, (v)>>16)
 #endif
 
+
+#include <assert.h>
+#define NB_ASSERT assert
+
 typedef int32_t ia_t;
 typedef int32_t lsockid_t;
 typedef uint32_t lsocktype_t;

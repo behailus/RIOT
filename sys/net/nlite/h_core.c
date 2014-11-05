@@ -18,23 +18,14 @@ typedef enum h_core_state
 /* Data structures */
 struct h_in
 {
-  int waiting_threads;
-  int usecount;
   int my_ia;
   int manager_ia;
-  h_core_state_t state;
-  h_socket_list_t* socklist;
-  h_request_handler_t* reqhandler;
-  h_subsystem_list_t* subsystems;
-  h_manager_t* manager;
-  h_monitor_list_t* monitors;
+  ncontroller_t cont;
   l_in_t* l_in;
-  l_connection_handler_t connection_handler;
-  int l_cl_sockid;
-  int use_errno;
+  int lsockid;
 };
 
-h_in_t* Hcreate(h_rmif_policy_t rmif_policy, int use_errno);
+h_in_t* Hcreate();
 int Hdestroy(h_in_t* core);
 
 
@@ -53,7 +44,7 @@ EXPORT_C h_in_t* Hgetinstance(void)
    if(!h_instance)
    {
    /* try to create instance */
-    instance = Hcreate(H_RMIF_POLICY_ACCEPT_ALL, 1);
+    instance = Hcreate();
     if(instance)
      {
       h_instance = instance;
@@ -63,14 +54,13 @@ EXPORT_C h_in_t* Hgetinstance(void)
    return h_instance;
 }
 
-h_in_t* Hcreate(h_rmif_policy_t rmif_policy, int use_errno)
+h_in_t* Hcreate()
 {
    int err;
    l_status_t lerr;
    lsockid_t lsock;
 
-   /* allocate memory */
-   h_in_t* core = (h_in_t*)nota_malloc(sizeof(h_in_t));
+   h_in_t* core;
    if(!core)
    {
       return NULL;
@@ -79,49 +69,9 @@ h_in_t* Hcreate(h_rmif_policy_t rmif_policy, int use_errno)
    /* initialize variables */
    core->usecount = 0;
    core->state = H_CORE_CREATED;
-   core->socklist = NULL;
-   core->reqhandler = NULL;
-   core->subsystems = NULL;
    core->l_in = NULL;
-   core->manager = NULL;
-   core->monitors = NULL;
-   core->use_errno = use_errno;
-   core->waiting_threads = 0;
 
-   /* create socket list */
-   core->socklist = h_socket_list_create();
-   if(!core->socklist)
-   {
-      free_core(core);
-      return NULL;
-   }
-
-   /* create request handler */
-   core->reqhandler = h_request_handler_create(core->socklist);
-   if(!core->reqhandler)
-   {
-      free_core(core);
-      return NULL;
-   }
-
-   /* create subsystem list */
-   core->subsystems = h_subsystem_list_create(core->reqhandler);
-   if(!core->subsystems)
-   {
-      free_core(core);
-      return NULL;
-   }
-
-   /* create monitor list */
-   core->monitors = h_monitor_list_create(core->socklist);
-   if(!core->monitors)
-   {
-      free_core(core);
-      return NULL;
-   }
-
-
-   /* create manager */
+      /* create manager */
    core->manager = h_manager_create(core->reqhandler, core->subsystems,
                       core->socklist, rmif_policy);
    if(!core->manager)
@@ -130,45 +80,26 @@ h_in_t* Hcreate(h_rmif_policy_t rmif_policy, int use_errno)
       return NULL;
    }
 
-   h_socket_list_set_request_handler(core->socklist, core->reqhandler);
-   h_socket_list_set_subsystem_list(core->socklist, core->subsystems);
-   h_socket_list_set_manager(core->socklist, core->manager);
-   h_socket_list_set_monitor_list(core->socklist, core->monitors);
-
-   h_request_handler_set_manager_subsystem_list(core->reqhandler, core->manager, core->subsystems);
-
-   /* initialize L_IN */
-   core->connection_handler.ia_resolved_ind = l_ia_resolved_ind;
-   core->connection_handler.ia_lost_ind = l_ia_lost_ind;
-   core->connection_handler.socket_update = l_socket_update;
    core->l_in = NULL;
-   lerr = Lactivate(&core->l_in, &core->connection_handler, (void*)core);
+
+   lerr = Lactivate(&core->l_in, (void*)core);
    if(lerr != L_STATUS_OK)
    {
-      free_core(core);
       return NULL;
    }
 
    lsock = Lopen(core->l_in, L_SOCKID_ANY, L_SOCKTYPE_CL);
    if(lsock < 1)
    {
-      free_core(core);
       return NULL;
    }
-   core->l_cl_sockid = lsock;
-
-   /* give pointer to l_in to sub entities */
-   h_subsystem_list_set_l_in(core->subsystems, core->l_in, lsock);
-   h_socket_list_set_l_in(core->socklist, core->l_in, lsock);
-   h_request_handler_set_l_in(core->reqhandler, core->l_in, lsock);
-   h_monitor_list_set_l_in(core->monitors, core->l_in);
+   core->lsockid = lsock;
 
    /* monitor L_IN status */
    core->state = H_CORE_WAITING_IA;
    lerr = LmonitorStatus(core->l_in);
    if(lerr != L_STATUS_OK)
    {
-      free_core(core);
       return NULL;
    }
 
@@ -179,33 +110,7 @@ static void destroy_instance()
 {
    h_in_t* instance = NULL;
 
-   instance = h_instance;
-   h_instance = NULL;
-   if(instance)
-   {
-      Hdestroy(instance);
-   }
-}
-
-int Hdestroy(h_in_t* core)
-{
-   if(!core)
-   {
-      CORE_RET(core, -EINVAL);
-   }
-
-   /* check use count */
-   if(core->usecount != 0)
-   {
-      CORE_RET(core, -EBUSY);
-   }
-
-   core->usecount = -1;
-
-   /* delete everything */
-   free_core(core);
-
-   return 0;
+   h_instance = instance;
 }
 
 EXPORT_C int Hsocket(h_in_t* core, int domain, int type, int protocol)

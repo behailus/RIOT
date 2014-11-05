@@ -1,11 +1,9 @@
-#include "nota/l_if.h"
-#include "nota/ld_if.h"
-#include "l_in_up.h"
-#include "lnode.h"
+#include "l_if.h"
+#include "ld_if.h"
 #include "lsocket.h"
-#include "ld_module.h"
-#include "ccache.h"
-#include "lprotocol.h"
+#include "ncontrol.h"
+#include "nhelper.h"
+#include "nprotocol.h"
 
 /* l_flags -> ld_flags */
 static int convert_flags(int flags)
