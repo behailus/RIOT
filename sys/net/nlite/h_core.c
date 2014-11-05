@@ -51,6 +51,12 @@ EXPORT_C h_in_t* Hgetinstance(void)
      }
      atexit(destroy_instance);
     }
+
+   ret = ld_module_init(&cb, NULL, &ops, &ld);
+   if(ret!=LD_STATUS_OK)
+   {
+        return NULL;
+   }
    return h_instance;
 }
 

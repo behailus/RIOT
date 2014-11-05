@@ -4,7 +4,7 @@
 #include "ncontrol.h"
 #include "nhelper.h"
 #include "nprotocol.h"
-
+#include "ld_tcp"
 /* l_flags -> ld_flags */
 static int convert_flags(int flags)
 {
@@ -61,24 +61,17 @@ static l_status_t convert_status(ld_status_t ld_status)
 #endif /* EXPORT_C */
 #endif /* __SYMBIAN32 */
 
+ld_status_t ld_module_init(ld_callback_t * cb, void * args, struct ld_ops ** ops, ld_t ** ld)
+{
+    return ld_tcp_module_init(cb, args, ops, ld);
+}
 
-/*
- * Initializes L_INup. The L_INup tries to establish connection and
- * the status can be monitored with LmonitorStatus function.
- *
- * Parameters:
- * l_in            - Pointer that will be modified to point to L_IN instance
- * status_callback - Callback handler when IA is resolved or lost
- * userarg         - Argument to be given as parameter in callbacks.
- *
- * Return value:
- * L_STATUS_OK  - Initialization ok
- * L_STATUS_NOK - Initialization failed
- *
- * Note: Lactivate is not thread-safe and should threfore be only accessed from a
- *       thead-safe H_IN core.
- */
-EXPORT_C l_status_t Lactivate(l_in_t** pl_in, l_connection_handler_t* status_callback, void* userarg)
+ld_status_t ld_module_destroy(ld_t *ld)
+{
+    return ld_tcp_module_destroy(ld);
+}
+
+l_status_t Lactivate(l_in_t** pl_in, l_connection_handler_t* status_callback, void* userarg)
 {
   int ret;
   l_in_t *l_in;
@@ -113,17 +106,7 @@ EXPORT_C l_status_t Lactivate(l_in_t** pl_in, l_connection_handler_t* status_cal
   return status;
 }
 
-/*
- * Closes L_IN.
- *
- * Parameters:
- * l_in - L_IN instance to be closed.
- *
- * Return value:
- * L_STATUS_OK - Closed successfully
- * L_STATUS_NOK - Could not be closed
- */
-EXPORT_C l_status_t Ldeactivate(l_in_t* l_in)
+l_status_t Ldeactivate(l_in_t* l_in)
 {
   int ret;
   l_status_t status;
@@ -141,19 +124,7 @@ EXPORT_C l_status_t Ldeactivate(l_in_t* l_in)
   return status;
 }
 
-/*
- * Retrieves IA information. Will return IA only if it exists & valid.
- *
- * Parameters:
- * l_in       - L_IN instance
- * my_ia      - my IA
- * manager_ia - Manager's IA
- *
- * Return value:
- * L_STATUS_OK  - IA retrieved successfully.
- * L_STATUS_NOK - E.g. no IA
- */
-EXPORT_C l_status_t LgetIA(l_in_t* l_in, ia_t* my_ia, ia_t* manager_ia)
+l_status_t LgetIA(l_in_t* l_in, ia_t* my_ia, ia_t* manager_ia)
 {
   LFUNC();
   nota_assert(l_in!=NULL);
@@ -170,21 +141,7 @@ EXPORT_C l_status_t LgetIA(l_in_t* l_in, ia_t* my_ia, ia_t* manager_ia)
 	return L_STATUS_OK;
 }
 
-/*
- * After calling this function the L_INup will notify the changes on
- * status of the network connection. Lia_resolved_ind function is
- * called when network becomes available and Lia_lost_ind function is
- * called when network connection is lost. After each callback the
- * status monitoring function needs to be called again.
- *
- * Parameters:
- * l_in - L_IN instance.
- *
- * Return value:
- * L_STATUS_OK  - Monitoring status
- * L_STATUS_NOK - Internal error.
- */
-EXPORT_C l_status_t LmonitorStatus(l_in_t* l_in)
+l_status_t LmonitorStatus(l_in_t* l_in)
 {
   l_status_t status = L_STATUS_OK;
   LFUNC();
@@ -195,19 +152,7 @@ EXPORT_C l_status_t LmonitorStatus(l_in_t* l_in)
   return status;
 }
 
-/*
- * Opens a new CO or CL socket.
- * Socket number L_SOCKID_ANY returns any free socket.
- *
- * Parameters:
- * l_in     - L_IN instance
- * sockid   - Socket ID to be opened
- * socktype - Socket type (L_SOCKTYPE_CL or L_SOCKTYPE_CO)
- *
- * Return value:
- * Opened socket id, greater than zero if successfull.
- */
-EXPORT_C lsockid_t Lopen(l_in_t* l_in, lsockid_t sockid, lsocktype_t socktype)
+lsockid_t Lopen(l_in_t* l_in, lsockid_t sockid, lsocktype_t socktype)
 {
   int nr;
   LFUNC();
@@ -220,19 +165,7 @@ EXPORT_C lsockid_t Lopen(l_in_t* l_in, lsockid_t sockid, lsocktype_t socktype)
   return nr;
 }
 
-/*
- * Closes a socket. After socket closing the socket may not be used anymore.
- * Possibly received data is lost.
- *
- * Parameters:
- * l_in   - L_IN instance
- * sockid - Socket to be closed
- *
- * Return value:
- * L_STATUS_OK  - Closed successfull
- * L_STATUS_NOK - Could not be closed
- */
-EXPORT_C l_status_t Lclose(l_in_t* l_in, lsockid_t sockid)
+l_status_t Lclose(l_in_t* l_in, lsockid_t sockid)
 {
   struct lsocket *s;
   l_status_t status = L_STATUS_OK;
@@ -266,10 +199,7 @@ EXPORT_C l_status_t Lclose(l_in_t* l_in, lsockid_t sockid)
   return status;
 }
 
-/*
- * Sets the socket to listening mode.
- */
-EXPORT_C l_status_t Llisten(l_in_t *l_in, lsockid_t sockid)
+l_status_t Llisten(l_in_t *l_in, lsockid_t sockid)
 {
   struct lsocket *s;
   l_status_t status = L_STATUS_OK;
@@ -288,10 +218,7 @@ EXPORT_C l_status_t Llisten(l_in_t *l_in, lsockid_t sockid)
   return status;
 }
 
-/*
- * Accepts connection.
- */
-EXPORT_C l_status_t Laccept(l_in_t *l_in, lsockid_t sockid)
+l_status_t Laccept(l_in_t *l_in, lsockid_t sockid)
 {
   int ret;
   struct lsocket *s;
@@ -359,20 +286,7 @@ EXPORT_C l_status_t Laccept(l_in_t *l_in, lsockid_t sockid)
   return L_STATUS_OK;
 }
 
-/*
- * Connects socket to another L_IN socket.
- *
- * Parameters:
- * l_in          - L_IN instance
- * sockid        - Socket to be connected
- * remote_ia     - Remote IA to which to connect
- * remote_sockid - Remote Sockid to which to connect
- *
- * Return values:
- * L_STATUS_OK  - Connected okay.
- * L_STATUS_NOK - Could not connect
- */
-EXPORT_C l_status_t Lconnect(l_in_t* l_in, lsockid_t sockid, ia_t remote_ia,lsockid_t remote_sockid)
+l_status_t Lconnect(l_in_t* l_in, lsockid_t sockid, ia_t remote_ia,lsockid_t remote_sockid)
 {
   int ret;
   int resolve_state;
@@ -479,20 +393,7 @@ EXPORT_C l_status_t Lconnect(l_in_t* l_in, lsockid_t sockid, ia_t remote_ia,lsoc
   return ret_status;
 }
 
-/*
- * Disconnects socket. After disconnecting the data is still available in
- * socket to be read but the socket cannot be used for sending data.
- *
- * Parameters:
- * l_in   - L_IN instance
- * sockid - Socket to be disconnected
- *
- * Return value:
- * L_STATUS_OK           - Disconnected successfully
- * L_STATUS_DISCONNECTED - Already disconnected
- * L_STATUS_NOK          - Could not be disconnected
- */
-EXPORT_C l_status_t Ldisconnect(l_in_t* l_in, lsockid_t sockid)
+l_status_t Ldisconnect(l_in_t* l_in, lsockid_t sockid)
 {
   int ret;
   struct lsocket *s;
@@ -528,36 +429,7 @@ EXPORT_C l_status_t Ldisconnect(l_in_t* l_in, lsockid_t sockid)
   return status;
 }
 
-/*
- * Requests updates regarding the state of the socket. Multiple
- * requests can be active at the same time. If new request is given
- * on socket that has active request, the requests will be combined
- * (e.g. if there was read request and there is a new write request,
- * callback can reply both at the same time).  When request is
- * completed (whether all conditions are met or not), the user must
- * issue new request to receive another update or return 1 to receive
- * another callback.
- *
- * The function is used to implement select function call.
- *
- * Callback is not called if the current socket status matches the
- * flags, or if the flags==L_SOCKET_UPDATE_NONE.
- *
- * Parameters:
- * l_in   - L_IN Instance
- * sockid - Socket id
- * flags  - Which statuses to observe:
- *         L_SOCKET_UPDATE_NONE  - Do not observe any changes (no callback)
- *         L_SOCKET_UPDATE_READ  - Observe when socket can be read.
- *         L_SOCKET_UPDATE_WRITE - Observe when socket can be written.
- *         L_SOCKET_UPDATE_ERROR - Observe when socket has an error.
- *
- * Return values:
- * <0 - Error code
- * >0 - Socket status currently (same flags). If (flags && ret!=flags),
- *      callback will happen.
- */
-EXPORT_C int LrequestSocketStatusUpdate(l_in_t* l_in, lsockid_t sockid, int flags)
+int LrequestSocketStatusUpdate(l_in_t* l_in, lsockid_t sockid, int flags)
 {
   int ret = L_STATUS_NOK;
   int f = 0;
@@ -652,25 +524,7 @@ EXPORT_C int LrequestSocketStatusUpdate(l_in_t* l_in, lsockid_t sockid, int flag
   return ret;
 }
 
-/*
- * Sends data to socket.
- *
- * Parameters:
- * l_in     - L_IN instance
- * sockid   - Socket which to send
- * msg      - Pointer to message to be sent
- * msg_len  - Length of the message behind the pointer
- * flags    - Send flags:
- *            L_FLAG_NORMAL will block until part of data is sent,
- *            L_FLAG_WAITALL will wait until all data is sent,
- *            L_FLAG_NONBLOCK will send something if possible.
- *
- * Return value:
- * 0  - Could not send anything (only possible if flags = L_FLAG_NONBLOCK)
- * <0 - Any of the l_status_t errorcodes (e.g. socket disconnected)
- * >0 - Number of bytes sent
- */
-EXPORT_C int Lsend(l_in_t* l_in, lsockid_t sockid, const void* msg, int msg_len, int flags)
+int Lsend(l_in_t* l_in, lsockid_t sockid, const void* msg, int msg_len, int flags)
 {
   struct lsocket *s;
   int ld_flags;
@@ -710,26 +564,7 @@ EXPORT_C int Lsend(l_in_t* l_in, lsockid_t sockid, const void* msg, int msg_len,
   return n;
 }
 
-/*
- * Receives data from socket.
- *
- * Parameters:
- * l_in     - L_IN instance
- * sockid   - Socket which to receive
- * buf      - Pointer to buffer
- * buf_len  - Length of the buffer
- * flags    - Receive flags: In all cases the request will return immediatly
- *            if socket is disconnected.
- *            L_FLAG_NORMAL will block until some data is received
- *            L_FLAG_WAITALL will wait until buffer is full
- *            L_FLAG_NONBLOCK will receive something if possible
- *
- * Return values:
- * 0  - Could not receive anything (only possible if flags = L_FLAG_NONBLOCK)
- * <0 - Any of the l_status_t errorcodes (e.g. socket disconnected)
- * >0 - Number of bytes received
- */
-EXPORT_C int Lreceive(l_in_t* l_in, lsockid_t sockid, void* buf, int buf_len,
+int Lreceive(l_in_t* l_in, lsockid_t sockid, void* buf, int buf_len,
 			 int flags)
 {
   struct lsocket *s;
@@ -772,23 +607,7 @@ EXPORT_C int Lreceive(l_in_t* l_in, lsockid_t sockid, void* buf, int buf_len,
   return n;
 }
 
-/*
- * Sends data using connection-less method to given IA. Always the whole
- * data or nothing is sent.
- *
- * Parameters:
- * l_in      - L_IN instance
- * sockid    - Socket (must be connectionless socket)
- * ia_target - Subsystem which to send
- * msg       - Pointer to message
- * msg_len   - Length of the message
- *
- * Return values:
- * L_STATUS_OK           - Message sent successfully
- * L_STATUS_DISCONNECTED - L_IN not ready
- * L_STATUS_NOK          - Message could not be sent
- */
-EXPORT_C l_status_t LsendTo(l_in_t* l_in, lsockid_t sockid,ia_t ia_target, const void* msg, int msg_len)
+l_status_t LsendTo(l_in_t* l_in, lsockid_t sockid,ia_t ia_target, const void* msg, int msg_len)
 {
   int ret;
   ld_status_t ld_status;
@@ -836,26 +655,7 @@ EXPORT_C l_status_t LsendTo(l_in_t* l_in, lsockid_t sockid,ia_t ia_target, const
   return ret;
 }
 
-/*
- * Receives messages from the connectionless socket. If there are no
- * pending messages available, the function will return immediately
- * with return value 0. If a message is available, the function will
- * return the IA where the message was sent from. The IA may be
- * IA_UNKNOWN if the sender's IA could not be resolved.
- *
- * Parameters:
- * l_in       - L_IN instance
- * sockid     - Socket (must be connectionless socket)
- * ia_remote  - source node's IA (can be IA_UNKNOWN)
- * buf        - Pointer to buffer
- * buf_len    - Length of the buffer
- *
- * Return values:
- * 0  - No messages available
- * <0 - Any of the l_status_t errorcodes (e.g. socket disconnected)
- * >0 - Number of bytes received
- */
-EXPORT_C int LreceiveFrom(l_in_t* l_in, lsockid_t sockid, ia_t *pia_remote, void* buf, int buf_len)
+int LreceiveFrom(l_in_t* l_in, lsockid_t sockid, ia_t *pia_remote, void* buf, int buf_len)
 {
   int n;
   struct lsocket *s;
@@ -883,22 +683,6 @@ EXPORT_C int LreceiveFrom(l_in_t* l_in, lsockid_t sockid, ia_t *pia_remote, void
   return n;
 }
 
-/*
- * Requests socket to be directly accessed. After modification the socket
- * cannot be accessed anymore with normal interface. The socket can be closed
- * with normal close socket command.
- *
- * Parameters
- * l_in    - L_IN instance
- * sockid  - Socket
- * info    - Address to direct access struct returned by L_IN down.
- *           Highly implementation specific.
- *
- * Return values:
- * L_STATUS_OK            - Direct access mode activated
- * L_STATUS_DISCONNECTED  - Socket not connected
- * L_STATUS_NOT_AVAILABLE - Transport does not support direct mode
- */
 l_status_t LenableDirectAccess(l_in_t* l_in, lsockid_t sockid, void** info)
 {
   struct lsocket *s;
