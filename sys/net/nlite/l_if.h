@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <limits.h> /* UINT_MAX */
-
+#include "nhelper.h"
 /* Constants */
 #define L_IF_VERSION   "3.0"
 
@@ -62,20 +62,12 @@ typedef void (*Lia_lost_ind_func)(void* userarg);
 typedef int (*L_socket_update_func)(void* userarg, lsockid_t sockid,
 				    int status);
 
-typedef struct {
-  Lia_resolved_ind_func ia_resolved_ind;
-  Lia_lost_ind_func ia_lost_ind;
-  L_socket_update_func socket_update;
-} l_connection_handler_t;
-
-struct l_in;
-typedef struct l_in l_in_t;
 
 ld_status_t ld_module_init(ld_callback_t *, void *, struct ld_ops **, ld_t **);
 
 ld_status_t ld_module_destroy(ld_t *ld);
 
-l_status_t Lactivate(l_in_t** l_in, l_connection_handler_t* status_callback,void* userarg);
+l_status_t Lactivate(l_in_t** l_in);
 
 l_status_t LmonitorStatus(l_in_t* l_in);
 

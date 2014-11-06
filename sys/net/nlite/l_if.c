@@ -4,7 +4,7 @@
 #include "ncontrol.h"
 #include "nhelper.h"
 #include "nprotocol.h"
-#include "ld_tcp"
+//Include the proper ld_module
 /* l_flags -> ld_flags */
 static int convert_flags(int flags)
 {
@@ -71,18 +71,12 @@ ld_status_t ld_module_destroy(ld_t *ld)
     return ld_tcp_module_destroy(ld);
 }
 
-l_status_t Lactivate(l_in_t** pl_in, l_connection_handler_t* status_callback, void* userarg)
+l_status_t Lactivate(l_in_t** pl_in)
 {
   int ret;
   l_in_t *l_in;
   l_status_t status;
   LFUNC();
-  nota_assert(pl_in!=NULL);
-  nota_assert(status_callback!=NULL);
-  nota_assert(status_callback->ia_resolved_ind!=NULL);
-  nota_assert(status_callback->ia_lost_ind!=NULL);
-  nota_assert(status_callback->socket_update!=NULL);
-
   l_in = l_in_get_instance();
   l_in->status_callback.ia_resolved_ind = status_callback->ia_resolved_ind;
   l_in->status_callback.ia_lost_ind = status_callback->ia_lost_ind;

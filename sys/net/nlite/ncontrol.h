@@ -11,8 +11,7 @@ typedef struct{
 
 static int send_USR_MessageCL_ind(ia_t dest_ia, uint8_t* msg, uint16_t msg_len);
 
-static void scene_update(ld_t *ld, void *user_arg, pai_t *address, luptype_t luptype,
-      ld_scene_update_status_t update_type);
+static void scene_update(ld_t *ld, void *user_arg, pai_t *address, luptype_t luptype,ld_scene_update_status_t update_type);
 
 static int send_SHP_Handshake_req();
 
@@ -25,5 +24,9 @@ static void incoming_SHP_Handshake_cnf(uint32_t ia_src, uint8_t* msg, uint16_t m
 static void incoming_SDP_ServiceDiscovery_cnf(uint32_t ia_src, uint8_t* msg, uint16_t msg_len, uint16_t req_id);
 
 static void incoming_SAP_ServiceAccess_cnf(uint32_t ia_src, uint8_t* msg, uint16_t msg_len, uint16_t req_id);
+
+static void handle_incoming_message();
+
+
 
 #endif // __NCONTROL_H__

@@ -25,4 +25,26 @@ typedef int32_t lsockid_t;
 typedef uint32_t lsocktype_t;
 typedef int32_t l_status_t;
 
+
+struct l_in
+{
+
+};
+typedef struct l_in l_in_t;
+
+struct ld_module {
+  int state;
+  struct ld_ops *ops; /* ops list, allocated by l_in_down. */
+  struct ld *ld;
+
+  int scene_running;
+
+  int ready;
+  ld_module_init_func init_func;
+  ld_module_destroy_func destroy_func;
+
+  struct l_in *l_in;
+  struct ld_module *next;
+};
+typedef struct ld_module ld_module_t;
 #endif
