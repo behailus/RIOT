@@ -105,9 +105,31 @@ EXPORT_C int Hsocket(h_in_t* core, int domain, int type, int protocol)
       {
         CORE_RET(core, -EPROTONOSUPPORT);
       }
-
+      sockid=core->lsockid;
 
       return sockid;
+
+}
+
+//LdOpen->Access,discovery,handshake, and finally LdConnect
+EXPORT_C int Hconnect(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t addrlen)
+{
+    nota_addr_t* addr_info = (nota_addr_t*)addr;
+
+    if(!addr || !core || sockid < 0 || addrlen != sizeof(nota_addr_t))
+    {
+        return-EINVAL;
+    }
+    lerr = LgetIA(core->l_in, &my_ia, &manager_ia);
+    if(lerr!=0)
+    {
+        return -EINVAL;
+    }
+    if(addr_info->sid > MAX_SID || addr_info->sid < 0 ||addr_info->port < 0 || addr_info->port > MAX_PORT)
+    {
+        return -EINVAL;
+    }
+    //Get manager_ia from cache and ask the manager for the requested ia
 
 }
 
@@ -139,12 +161,6 @@ EXPORT_C int Haccept(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t*
    int ret = -EINVAL;
 
    return ret;
-}
-
-//LdOpen->Access,discovery,handshake, and finally LdConnect
-EXPORT_C int Hconnect(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t addrlen)
-{
-
 }
 
 //LdSend

@@ -1,6 +1,7 @@
 #include "ncontrol.h"
 #include "nprotocol.h"
 #include "nhelper.h"
+#include "l_if.h"
 
 static int send_USR_MessageCL_ind(ia_t dest_ia, uint8_t* msg, uint16_t msg_len)
 {

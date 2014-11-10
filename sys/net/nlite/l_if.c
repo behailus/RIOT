@@ -1,11 +1,9 @@
 #include "l_if.h"
 #include "ld_if.h"
-#include "lsocket.h"
 #include "ncontrol.h"
 #include "nhelper.h"
 #include "nprotocol.h"
-//Include the proper ld_module
-/* l_flags -> ld_flags */
+
 static int convert_flags(int flags)
 {
   int ld_flags;
