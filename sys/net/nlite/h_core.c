@@ -15,16 +15,15 @@ typedef enum h_core_state
     H_CORE_READY
   } h_core_state_t;
 
-/* Data structures */
 struct h_in
 {
   int my_ia;
   int manager_ia;
-  ncontroller_t cont;
+  ncontroller_t *cont;
   l_in_t* l_in;
   int32_t lsockid;
+  int hsockid;
 };
-
 
 h_in_t* Hcreate();
 int Hdestroy(h_in_t* core);
@@ -62,17 +61,11 @@ h_in_t* Hcreate()
     int err;
     int32_t lerr,lsock;
     h_in_t* core;
-    lerr = Lactivate(&core->l_in);
+    lerr = activate(core);
     if(lerr!=0)
     {
         return NULL;
     }
-    lsock = Lopen(core->l_in, L_SOCKID_ANY, L_SOCKTYPE_CL);
-    if(lsock<1)
-    {
-        return NULL;
-    }
-    core->lsockid=lsock;
     return core;
 }
 
@@ -105,16 +98,15 @@ EXPORT_C int Hsocket(h_in_t* core, int domain, int type, int protocol)
       {
         CORE_RET(core, -EPROTONOSUPPORT);
       }
-      sockid=core->lsockid;
-
-      return sockid;
+      core->hsockid=1;
+      return core->hsockid;
 
 }
 
 //LdOpen->Access,discovery,handshake, and finally LdConnect
 EXPORT_C int Hconnect(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t addrlen)
 {
-    nota_addr_t* addr_info = (nota_addr_t*)addr;
+    naddr_t* addr_info = (naddr_t*)addr;
 
     if(!addr || !core || sockid < 0 || addrlen != sizeof(nota_addr_t))
     {
@@ -129,8 +121,15 @@ EXPORT_C int Hconnect(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t
     {
         return -EINVAL;
     }
-    //Get manager_ia from cache and ask the manager for the requested ia
-
+    if(Lnegotiate(addr_info->sid)!=L_STATUS_OK)
+    {
+        return -EINVAL;
+    }
+    if(Lconnect()!=L_STATUS_OK)
+    {
+        return -EINVAL;
+    }
+    return 0;
 }
 
 //Not implemented for the time being
@@ -144,7 +143,14 @@ EXPORT_C int Hbind(h_in_t* core, int sockid, struct sockaddr* my_addr, socklen_t
 //Close socket LdClose, destroy module and send close service message
 EXPORT_C int Hclose(h_in_t* core, int sockid)
 {
-   ret = core.
+    if(Lclose(core->l_in,core->lsockid)==L_STATUS_OK)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 //Not implemented for this version
@@ -166,13 +172,13 @@ EXPORT_C int Haccept(h_in_t* core, int sockid, struct sockaddr* addr, socklen_t*
 //LdSend
 EXPORT_C int Hsend(h_in_t* core, int sockid, const void* buf, int len, int flags)
 {
-
+    return Lsend(core->l_in,core->lsockid,buf,len,flags);
 }
 
 //LdReceive
 EXPORT_C int Hrecv(h_in_t* core, int sockid, void* buf, int len, int flags)
 {
-
+    return Lreceive(core->l_in,core->lsockid,buf,len,flags);
 }
 
 //Not implemented for this version

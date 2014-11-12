@@ -47,7 +47,7 @@ typedef uint32_t lsocktype_t;
 typedef int32_t l_status_t;
 
 typedef uint8_t cookie_t[16];
-#define COOKIE(cookie_dest, cookie_source) nota_memcpy((cookie_dest),(cookie_source), sizeof(cookie_t))
+#define COOKIE(cookie_dest, cookie_source) memcpy((cookie_dest),(cookie_source), sizeof(cookie_t))
 
 typedef uint64_t loffset_t;
 
@@ -63,6 +63,15 @@ typedef int (*L_socket_update_func)(void* userarg, lsockid_t sockid,
 				    int status);
 
 
+l_status_t initialize();
+
+l_status_t deactivate();
+
+l_status_t activate(h_in_t* core);
+
+l_status_t open_socket();
+
+
 ld_status_t ld_module_init(ld_callback_t *, void *, struct ld_ops **, ld_t **);
 
 ld_status_t ld_module_destroy(ld_t *ld);
@@ -72,6 +81,7 @@ l_status_t Lactivate(l_in_t** l_in);
 l_status_t LmonitorStatus(l_in_t* l_in);
 
 l_status_t Ldeactivate(l_in_t* l_in);
+
 
 l_status_t LgetIA(l_in_t* l_in, ia_t* my_ia, ia_t* manager_ia);
 
@@ -83,7 +93,9 @@ l_status_t Llisten(l_in_t *l_in, lsockid_t sockid);
 
 l_status_t Laccept(l_in_t *l_in, lsockid_t sockid);
 
-l_status_t Lconnect(l_in_t* l_in, lsockid_t sockid, ia_t remote_ia,lsockid_t remote_sockid);
+l_status_t Lnegotiate(sid_t servia);
+
+l_status_t Lconnect();
 
 l_status_t Ldisconnect(l_in_t* l_in, lsockid_t sockid);
 

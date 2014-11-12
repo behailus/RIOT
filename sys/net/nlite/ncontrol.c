@@ -1,9 +1,11 @@
 #include "ncontrol.h"
+#include "h_bsdapi.h"
 #include "nprotocol.h"
 #include "nhelper.h"
 #include "l_if.h"
 
-static int send_USR_MessageCL_ind(ia_t dest_ia, uint8_t* msg, uint16_t msg_len)
+
+static int send_USR_MessageCL_ind(ia_t dest_ia, uint8_t* msg, uint16_t msg_len,ld_ops_t* ops)
 {
    int len;
    uint8_t buf[MAX_H_IN_MSG_REQ+USR_MESSAGECL_IND_LEN+L_PROTOCOL_HEADER_LENGTH];
@@ -33,7 +35,7 @@ static void scene_update(ld_t *ld, void *user_arg, pai_t *address, luptype_t lup
    }
 }
 
-static int send_SHP_Handshake_req()
+static int send_SHP_Handshake_req(ld_ops_t* ops)
 {
    uint8_t msg[H_SHP_HANDSHAKE_REQ_MIN_LEN+H_PROTOCOL_HEADER_LENGTH];
    uint8_t* p;
@@ -52,10 +54,10 @@ static int send_SHP_Handshake_req()
    SET16(&p[2], 0); /* no flags */
    SET16(&p[4], 0); /* no message */
 
-   return send_USR_MessageCL_ind(rm_ia, msg, msg_len);
+   return send_USR_MessageCL_ind(rm_ia, msg, msg_len,ops);
 }
 
-static int send_SDP_ServiceDiscovery_req()
+static int send_SDP_ServiceDiscovery_req(ld_ops_t* ops)
 {
    uint8_t msg[H_SDP_SERVICEDISCOVERY_REQ_MIN_LEN + H_PROTOCOL_HEADER_LENGTH];
    uint8_t* p;
@@ -72,10 +74,10 @@ static int send_SDP_ServiceDiscovery_req()
    SET32(&p[0], BOOT_SID);
    SET16(&p[4], 0); /* no cert */
 
-   return send_USR_MessageCL_ind(rm_ia, msg, msg_len);
+   return send_USR_MessageCL_ind(rm_ia, msg, msg_len,ops);
 }
 
-static int send_SAP_ServiceAccess_req()
+static int send_SAP_ServiceAccess_req(ld_ops_t* ops)
 {
    uint8_t msg[H_SAP_SERVICEACCESS_REQ_MIN_LEN + H_PROTOCOL_HEADER_LENGTH];
    uint8_t* p;
@@ -94,7 +96,7 @@ static int send_SAP_ServiceAccess_req()
    SET16(&p[8], 0);  /* no flag */
    SET16(&p[10], 0); /* no cert */
 
-   return send_USR_MessageCL_ind(rm_ia, msg, msg_len);
+   return send_USR_MessageCL_ind(rm_ia, msg, msg_len,ops);
 }
 
 static void incoming_SHP_Handshake_cnf(uint32_t ia_src, uint8_t* msg, uint16_t msg_len, uint16_t req_id)
@@ -129,7 +131,7 @@ static void incoming_SAP_ServiceAccess_cnf(uint32_t ia_src, uint8_t* msg, uint16
    co_remote_service_lsockid = GET32(msg);
 }
 
-static void handle_incoming_message()
+static void handle_incoming_message(ld_ops_t* ops)
 {
    int ret;
 
@@ -284,7 +286,7 @@ static int check_l_msg(uint8_t *buf,ia_t dest_ia, ia_t src_ia,uint16_t reqid, ui
    }
 }
 
-static int send_IARP_GetIA_req()
+static int send_IARP_GetIA_req(ld_ops_t* ops)
 {
    int len;
    uint8_t buf[IARP_GETIA_REQ_LEN+L_PROTOCOL_HEADER_LENGTH];
@@ -296,7 +298,7 @@ static int send_IARP_GetIA_req()
    return ops->LdSendTo(ld, cl_sockid, &lmanager_pai, cl_sockid, buf, len);
 }
 
-static int send_IARP_Release_req()
+static int send_IARP_Release_req(ld_ops_t* ops)
 {
    int len;
    uint8_t buf[L_PROTOCOL_HEADER_LENGTH+IARP_RELEASE_REQ_LEN];
@@ -311,7 +313,7 @@ static int send_IARP_Release_req()
    return ops->LdSendTo(ld, cl_sockid, &lmanager_pai, cl_sockid, buf, len);
 }
 
-static int send_PAP_Connect_req(ia_t dest_ia)
+static int send_PAP_Connect_req(ia_t dest_ia,ld_ops_t* ops)
 {
    int len;
    int64_t offset=0;

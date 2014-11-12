@@ -1,6 +1,8 @@
 #ifndef __NHELPER_H__
 #define __NHELPER_H__
 
+
+
 #define GET8(p)    (*((uint8_t*)(p)))
 #define SET8(p, v) (*((uint8_t*)(p))) = (uint8_t)(v)
 
@@ -25,7 +27,15 @@ typedef int32_t lsockid_t;
 typedef uint32_t lsocktype_t;
 typedef int32_t l_status_t;
 
+typedef unsigned int sid_t;
+typedef unsigned int vdid_t;
 
+struct naddr {
+  sid_t        sid;     /* service identifier */
+  unsigned int port;      /* port of the sid */
+  vdid_t       device; /* virtual device id */
+};
+typedef struct naddr naddr_t;
 struct l_in
 {
 
