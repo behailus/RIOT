@@ -1,15 +1,6 @@
 #ifndef __H_BSDAPI_H__
 #define __H_BSDAPI_H__
-
-#ifndef NOTA_SYSTEM_NO_BSD_SOCKETS
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
 #include <errno.h>
-#else /*NOTA_SYSTEM_NO_BSD_SOCKETS*/
-typedef int socklen_t;
-struct sockaddr;
-#endif /*!NOTA_SYSTEM_NO_BSD_SOCKETS*/
 
 struct h_in;
 typedef struct h_in h_in_t;
@@ -55,12 +46,13 @@ extern "C" {
 typedef unsigned int sid_t;
 typedef unsigned int vdid_t;
 
-struct nota_addr {
+struct naddr {
   sid_t        sid;     /* service identifier */
   unsigned int port;      /* port of the sid */
   vdid_t       device; /* virtual device id */
 };
-typedef struct nota_addr nota_addr_t;
+
+typedef struct naddr naddr_t;
 
 
 /* some definitions that may not exist on all systems;
